@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -18,7 +19,7 @@ import (
 	"gopkg.in/fsnotify.v1"
 )
 
-//Config is a sorter configuration
+// Config is a sorter configuration
 type Config struct {
 	Targets           []string `opts:"mode=arg,min=1"`
 	TVDir             string   `opts:"help=tv series base directory (defaults to current directory)"`
@@ -41,9 +42,10 @@ type Config struct {
 	Watch             bool          `opts:"help=watch the specified directories for changes and re-sort on change"`
 	WatchDelay        time.Duration `opts:"help=delay before next sort after a change"`
 	Verbose           bool          `opts:"help=verbose logs"`
+	Callback          string        `opts:"help=callback ran each time a file is moved with path as first arg"`
 }
 
-//fsSort is a media sorter
+// fsSort is a media sorter
 type fsSort struct {
 	Config
 	validExts map[string]bool
@@ -341,6 +343,12 @@ func (fs *fsSort) sortFile(file *fileSort) error {
 		newPathSubs := strings.TrimSuffix(newPath, filepath.Ext(newPath)) + ".srt"
 		fs.action(pathSubs, newPathSubs) //best-effort
 	}
+
+	if fs.Config.Callback != "" {
+		log.Printf("Running callback: %s %s", fs.Config.Callback, file.path)
+		exec.Command(fs.Config.Callback, file.path)
+	}
+
 	return nil
 }
 
